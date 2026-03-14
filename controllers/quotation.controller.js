@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { generateQuotationNumber } from "../utils/generateQuotationNumber.js";
+import Quotation from "../models/Quotation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +21,7 @@ export const generateQuotationPDF = async (req, res) => {
       clientPhone,
       eventType,
       quotationDate,
+      eventDate,
       items,
       total,
       transportationCharge = 0
@@ -135,6 +137,15 @@ export const generateQuotationPDF = async (req, res) => {
     doc
       .font(fontRegular)
       .text(`Date: ${quotationDate}`, 420, currentY);
+
+    currentY += 15;
+
+    if (eventDate) {
+      doc
+        .font(fontBold)
+        .fontSize(11)
+        .text(`Event Date: ${eventDate}`, 420, currentY);
+    }
 
     // ================= CLIENT DETAILS =================
 
@@ -330,5 +341,190 @@ export const generateQuotationPDF = async (req, res) => {
       details: error.message
     });
 
+  }
+};
+
+export const saveQuotation = async (req, res) => {
+  try {
+    let {
+      quotationNumber,
+      clientName,
+      clientEmail,
+      clientPhone,
+      eventType,
+      quotationDate,
+      eventDate,
+      items,
+      total,
+      transportationCharge = 0
+    } = req.body;
+
+    if (!clientName || !items || items.length === 0) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Convert eventType to lowercase for enum validation
+    if (eventType) {
+      eventType = eventType.toLowerCase().trim();
+    }
+
+    // Generate quotation number if not provided or empty
+    if (!quotationNumber || quotationNumber.trim() === '') {
+      quotationNumber = await generateQuotationNumber();
+    }
+
+    console.log("Generated/Received Quotation Number:", quotationNumber);
+
+    // Check if quotation already exists
+    const existingQuotation = await Quotation.findOne({ quotationNumber });
+
+    if (existingQuotation) {
+      // Update existing quotation
+      console.log("Updating existing quotation:", quotationNumber);
+      const updated = await Quotation.findByIdAndUpdate(
+        existingQuotation._id,
+        {
+          clientName,
+          clientEmail,
+          clientPhone,
+          eventType,
+          quotationDate,
+          eventDate,
+          items,
+          total,
+          transportationCharge
+        },
+        { new: true }
+      );
+
+      return res.status(200).json({
+        message: "Quotation updated successfully",
+        quotation: updated
+      });
+    }
+
+    // Create new quotation
+    console.log("Creating new quotation with number:", quotationNumber);
+    const quotation = new Quotation({
+      quotationNumber,
+      clientName,
+      clientEmail,
+      clientPhone,
+      eventType,
+      quotationDate,
+      eventDate,
+      items,
+      total,
+      transportationCharge
+    });
+
+    await quotation.save();
+    console.log("Quotation saved successfully:", quotationNumber);
+
+    res.status(201).json({
+      message: "Quotation saved successfully",
+      quotation
+    });
+  } catch (error) {
+    console.error("Error saving quotation:", error);
+    res.status(500).json({
+      error: "Failed to save quotation",
+      details: error.message
+    });
+  }
+};
+
+export const getQuotationByNumber = async (req, res) => {
+  try {
+    let { quotationNumber } = req.params;
+
+    if (!quotationNumber) {
+      return res.status(400).json({ error: "Quotation number is required" });
+    }
+
+    // Trim whitespace and handle case sensitivity
+    quotationNumber = quotationNumber.trim();
+    
+    console.log("Searching for quotation number:", quotationNumber);
+    
+    const quotation = await Quotation.findOne({ quotationNumber });
+
+    if (!quotation) {
+      console.log("Quotation not found for number:", quotationNumber);
+      return res.status(404).json({ error: "Quotation not found" });
+    }
+
+    console.log("Quotation found:", quotationNumber);
+    res.status(200).json({
+      message: "Quotation found",
+      quotation
+    });
+  } catch (error) {
+    console.error("Error fetching quotation:", error);
+    res.status(500).json({
+      error: "Failed to fetch quotation",
+      details: error.message
+    });
+  }
+};
+
+export const updateQuotation = async (req, res) => {
+  try {
+    const { quotationNumber } = req.params;
+    let {
+      clientName,
+      clientEmail,
+      clientPhone,
+      eventType,
+      quotationDate,
+      eventDate,
+      items,
+      total,
+      transportationCharge = 0
+    } = req.body;
+
+    if (!quotationNumber) {
+      return res.status(400).json({ error: "Quotation number is required" });
+    }
+
+    if (!clientName || !items || items.length === 0) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Convert eventType to lowercase for enum validation
+    if (eventType) {
+      eventType = eventType.toLowerCase().trim();
+    }
+
+    const quotation = await Quotation.findOneAndUpdate(
+      { quotationNumber },
+      {
+        clientName,
+        clientEmail,
+        clientPhone,
+        eventType,
+        quotationDate,
+        eventDate,
+        items,
+        total,
+        transportationCharge
+      },
+      { new: true }
+    );
+
+    if (!quotation) {
+      return res.status(404).json({ error: "Quotation not found" });
+    }
+
+    res.status(200).json({
+      message: "Quotation updated successfully",
+      quotation
+    });
+  } catch (error) {
+    console.error("Error updating quotation:", error);
+    res.status(500).json({
+      error: "Failed to update quotation",
+      details: error.message
+    });
   }
 };
