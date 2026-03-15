@@ -12,7 +12,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://chinmayi-events-frontend.netlify.app"
+  "https://chinmayi-events.netlify.app"
 ];
 
 app.use(cors({
