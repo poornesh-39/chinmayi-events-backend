@@ -16,6 +16,7 @@ export const generateQuotationPDF = async (req, res) => {
   try {
 
     const {
+      quotationNumber,
       clientName,
       clientEmail,
       clientPhone,
@@ -31,12 +32,13 @@ export const generateQuotationPDF = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const quotationNumber = await generateQuotationNumber();
+    // Use provided quotation number or generate a new one
+    const finalQuotationNumber = quotationNumber || await generateQuotationNumber();
 
     const safeClientName = clientName.replace(/\s+/g, "_");
     const safeEventType = eventType ? eventType.replace(/\s+/g, "_") : "Event";
 
-    const fileName = `${quotationNumber}_${safeClientName}_${safeEventType}_Quotation.pdf`;
+    const fileName = `${finalQuotationNumber}_${safeClientName}_${safeEventType}_Quotation.pdf`;
 
     const doc = new PDFDocument({
       size: "A4",
@@ -132,7 +134,7 @@ export const generateQuotationPDF = async (req, res) => {
       .font(fontBold)
       .fontSize(11)
       .fillColor("black")
-      .text(`Quotation Number: ${quotationNumber}`, 30, currentY);
+      .text(`Quotation Number: ${finalQuotationNumber}`, 30, currentY);
 
     doc
       .font(fontRegular)
@@ -496,6 +498,8 @@ export const updateQuotation = async (req, res) => {
       eventType = eventType.toLowerCase().trim();
     }
 
+    console.log("Updating quotation:", quotationNumber);
+
     const quotation = await Quotation.findOneAndUpdate(
       { quotationNumber },
       {
@@ -513,8 +517,11 @@ export const updateQuotation = async (req, res) => {
     );
 
     if (!quotation) {
+      console.log("Quotation not found for update:", quotationNumber);
       return res.status(404).json({ error: "Quotation not found" });
     }
+
+    console.log("Quotation updated successfully:", quotationNumber);
 
     res.status(200).json({
       message: "Quotation updated successfully",
