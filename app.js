@@ -8,7 +8,24 @@ import galleryRoutes from "./routes/gallery.routes.js";
 
 const app = express();
 
-app.use(cors());
+// CORS configuration - allow both local dev and deployed frontend
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://chinmayi-events-frontend.netlify.app"
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
 app.use("/api/contact", contactRoutes);
