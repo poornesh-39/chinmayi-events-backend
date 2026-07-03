@@ -4,8 +4,10 @@ import {
   uploadGalleryImage,
   getGalleriesByCategory,
   getAllCategoriesWithFeatured,
+  getHighlights,
   deleteGalleryImage,
   setFeaturedImage,
+  toggleHighlightImage,
   getAdminGalleries
 } from '../controllers/gallery.controller.js';
 
@@ -36,9 +38,11 @@ const upload = multer({
 
 router.post('/upload', upload.single('file'), uploadGalleryImage);
 router.get('/categories', getAllCategoriesWithFeatured);
-router.get('/category/:category', getGalleriesByCategory);
+router.get('/highlights', getHighlights);
 router.get('/admin/all', getAdminGalleries);
+router.get('/category/:category', getGalleriesByCategory);
 router.delete('/:imageId', deleteGalleryImage);
 router.put('/:imageId/featured', setFeaturedImage);
+router.put('/:imageId/highlight', toggleHighlightImage);
 
 export default router;
