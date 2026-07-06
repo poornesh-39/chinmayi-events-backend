@@ -52,7 +52,8 @@ export const uploadGalleryImage = async (req, res) => {
       cloudinaryUrl: uploadResult.secure_url,
       cloudinaryPublicId: uploadResult.public_id,
       mediaType: uploadResult.resource_type === "video" ? "video" : "image",
-      isFeatured: false
+      isFeatured: false,
+      isHighlight: false
     });
 
     await gallery.save();
@@ -121,7 +122,7 @@ export const getAllCategoriesWithFeatured = async (req, res) => {
         // Get featured image, or latest image if no featured
         const featured = await Gallery.findOne({
           eventCategory: category
-        }).sort({ uploadedAt: -1 });
+        }).sort({ isFeatured: -1, uploadedAt: -1 });
 
         return {
           category,
@@ -133,7 +134,7 @@ export const getAllCategoriesWithFeatured = async (req, res) => {
     );
 
     // Filter out categories with no images
-    const categoriesWithImages = categoriesData.filter(c => c.imageCount > 0);
+    const categoriesWithImages = categoriesData.filter((category) => category.imageCount > 0);
 
     res.status(200).json({
       message: "Categories retrieved successfully",
@@ -143,6 +144,31 @@ export const getAllCategoriesWithFeatured = async (req, res) => {
     console.error("Error fetching categories:", error);
     res.status(500).json({
       error: "Failed to fetch categories",
+      details: error.message
+    });
+  }
+};
+
+export const getHighlights = async (req, res) => {
+  try {
+    const selectedHighlights = await Gallery.find({ isHighlight: true })
+      .sort({ uploadedAt: -1 })
+      .limit(6);
+
+    const highlights = selectedHighlights.length > 0
+      ? selectedHighlights
+      : await Gallery.find({}).sort({ uploadedAt: -1 }).limit(6);
+
+    res.status(200).json({
+      message: selectedHighlights.length > 0
+        ? "Highlights retrieved successfully"
+        : "Latest gallery media returned as highlight fallback",
+      highlights
+    });
+  } catch (error) {
+    console.error("Error fetching highlights:", error);
+    res.status(500).json({
+      error: "Failed to fetch highlights",
       details: error.message
     });
   }
@@ -170,7 +196,9 @@ export const deleteGalleryImage = async (req, res) => {
     }
 
     // Delete from Cloudinary
-    await cloudinary.v2.uploader.destroy(gallery.cloudinaryPublicId);
+    await cloudinary.v2.uploader.destroy(gallery.cloudinaryPublicId, {
+      resource_type: gallery.mediaType === "video" ? "video" : "image"
+    });
 
     // Delete from MongoDB
     await Gallery.findByIdAndDelete(imageId);
@@ -219,6 +247,36 @@ export const setFeaturedImage = async (req, res) => {
     console.error("Error setting featured image:", error);
     res.status(500).json({
       error: "Failed to set featured image",
+      details: error.message
+    });
+  }
+};
+
+export const toggleHighlightImage = async (req, res) => {
+  try {
+    const { imageId } = req.params;
+
+    if (!imageId) {
+      return res.status(400).json({ error: "Image ID is required" });
+    }
+
+    const gallery = await Gallery.findById(imageId);
+
+    if (!gallery) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+
+    gallery.isHighlight = !gallery.isHighlight;
+    await gallery.save();
+
+    res.status(200).json({
+      message: gallery.isHighlight ? "Media added to highlights" : "Media removed from highlights",
+      gallery
+    });
+  } catch (error) {
+    console.error("Error updating highlight image:", error);
+    res.status(500).json({
+      error: "Failed to update highlight image",
       details: error.message
     });
   }

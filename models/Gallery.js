@@ -36,6 +36,10 @@ const gallerySchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    isHighlight: {
+      type: Boolean,
+      default: false
+    },
     uploadedAt: {
       type: Date,
       default: Date.now
@@ -47,5 +51,6 @@ const gallerySchema = new mongoose.Schema(
 // Index for efficient category-based queries
 gallerySchema.index({ eventCategory: 1, uploadedAt: -1 });
 gallerySchema.index({ eventCategory: 1, isFeatured: -1 });
+gallerySchema.index({ isHighlight: -1, uploadedAt: -1 });
 
 export default mongoose.model("Gallery", gallerySchema);

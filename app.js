@@ -8,19 +8,51 @@ import galleryRoutes from "./routes/gallery.routes.js";
 
 const app = express();
 
-// CORS configuration - allow both local dev and deployed frontend
+// CORS configuration - allow local dev, existing frontend, and env-based deployed frontends
+const configuredOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.SEO_FRONTEND_URL,
+  process.env.NEW_FRONTEND_URL
+].filter(Boolean);
+
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://chinmayi-events.netlify.app"
+  "http://localhost:4321",
+  "https://chinmayi-events.netlify.app",
+  ...configuredOrigins
 ];
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+
+  try {
+    const { hostname, protocol } = new URL(origin);
+    const isHttps = protocol === "https:";
+
+    return (
+      isHttps &&
+      (hostname.endsWith(".netlify.app") ||
+        hostname.endsWith(".pages.dev") ||
+        hostname === "chinmayi-events.com" ||
+        hostname === "www.chinmayi-events.com" ||
+        hostname === "chinmayievents.com" ||
+        hostname === "www.chinmayievents.com" ||
+        hostname === "chinmayievents.in" ||
+        hostname === "www.chinmayievents.in")
+    );
+  } catch {
+    return false;
+  }
+};
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false);
     }
   },
   credentials: true
@@ -38,3 +70,5 @@ app.get("/", (req, res) => {
 });
 
 export default app;
+
+
