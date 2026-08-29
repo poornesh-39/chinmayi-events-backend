@@ -12,10 +12,14 @@ const contactSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    // Optional: most enquiries come from mobile users who are contacted back
+    // by phone or WhatsApp, and requiring an email measurably costs leads.
     email: {
       type: String,
-      required: true,
-      lowercase: true
+      required: false,
+      lowercase: true,
+      trim: true,
+      default: ""
     },
     eventType: {
       type: String,
@@ -24,7 +28,9 @@ const contactSchema = new mongoose.Schema(
     },
     message: {
       type: String,
-      required: true
+      required: false,
+      trim: true,
+      default: ""
     }
   },
   { timestamps: true }
