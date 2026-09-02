@@ -5,8 +5,12 @@ export const submitContactForm = async (req, res) => {
   try {
     const { name, phone, email, eventType, message } = req.body;
 
-    if (!name || !phone || !email || !eventType || !message) {
-      return res.status(400).json({ message: "All fields are required" });
+    // Email and message are optional — name, phone and event type are enough
+    // to follow up on an enquiry.
+    if (!name || !phone || !eventType) {
+      return res
+        .status(400)
+        .json({ message: "Name, phone and event type are required" });
     }
 
     if (!EVENT_TYPES.includes(eventType)) {
@@ -16,9 +20,9 @@ export const submitContactForm = async (req, res) => {
     const contact = await Contact.create({
       name,
       phone,
-      email,
+      email: email || "",
       eventType,
-      message
+      message: message || ""
     });
 
     res.status(201).json({
