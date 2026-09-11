@@ -8,6 +8,7 @@ export const EVENT_TYPES = [
   "vehicle",
   "haldi(pre-wedding)",
   "naming-ceremony",
+  "baby-shower",
   "corporate",
   "other"
 ];

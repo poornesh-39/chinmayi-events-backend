@@ -62,9 +62,12 @@ coverage/
 dump/
 
 # ===============================
-# Optional lock files (keep only one)
+# Lock files (keep only one)
 # ===============================
-# Uncomment if needed
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
+# package-lock.json is the tracked lockfile and what the deploy builds from.
+# Installing with another package manager locally is fine, but its lockfile
+# must not be committed — two lockfiles let the deploy resolve a different
+# dependency tree than the one tested here.
+pnpm-lock.yaml
+pnpm-workspace.yaml
+yarn.lock
