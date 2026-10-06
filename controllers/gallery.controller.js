@@ -282,6 +282,40 @@ export const toggleHighlightImage = async (req, res) => {
   }
 };
 
+/**
+ * Public, read-only listing of every gallery item.
+ *
+ * The website's gallery and the build-time SEO bake both need the full set in
+ * one request, and neither has a token. They used to call /admin/all, which is
+ * now behind requireAuth — hence this route.
+ *
+ * It is not the admin payload with the guard removed: cloudinaryPublicId is the
+ * handle the delete and overwrite calls take, so it stays server-side. Nothing
+ * returned here is more than what the rendered page already shows.
+ */
+const PUBLIC_FIELDS =
+  "_id title description eventCategory cloudinaryUrl mediaType isFeatured isHighlight uploadedAt createdAt";
+
+export const getPublicGalleries = async (req, res) => {
+  try {
+    const galleries = await Gallery.find({})
+      .select(PUBLIC_FIELDS)
+      .sort({ uploadedAt: -1 })
+      .lean();
+
+    res.status(200).json({
+      message: "All galleries retrieved successfully",
+      galleries
+    });
+  } catch (error) {
+    console.error("Error fetching galleries:", error);
+    res.status(500).json({
+      error: "Failed to fetch galleries",
+      details: error.message
+    });
+  }
+};
+
 export const getAdminGalleries = async (req, res) => {
   try {
     const galleries = await Gallery.find({}).sort({ uploadedAt: -1 });

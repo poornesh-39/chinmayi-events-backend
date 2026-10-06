@@ -5,6 +5,7 @@ import {
   getGalleriesByCategory,
   getAllCategoriesWithFeatured,
   getHighlights,
+  getPublicGalleries,
   deleteGalleryImage,
   setFeaturedImage,
   toggleHighlightImage,
@@ -40,6 +41,7 @@ const upload = multer({
 // Public: what the website itself renders.
 router.get('/categories', getAllCategoriesWithFeatured);
 router.get('/highlights', getHighlights);
+router.get('/all', getPublicGalleries);
 router.get('/category/:category', getGalleriesByCategory);
 
 // Admin only. requireAuth sits ahead of multer deliberately — otherwise an

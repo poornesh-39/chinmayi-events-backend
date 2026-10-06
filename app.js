@@ -36,6 +36,7 @@ const isAllowedOrigin = (origin) => {
       isHttps &&
       (hostname.endsWith(".netlify.app") ||
         hostname.endsWith(".pages.dev") ||
+        hostname.endsWith(".vercel.app") ||
         hostname === "chinmayi-events.com" ||
         hostname === "www.chinmayi-events.com" ||
         hostname === "chinmayievents.com" ||
