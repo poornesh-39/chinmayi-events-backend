@@ -121,4 +121,20 @@ export const updateContact = async (req, res) => {
   }
 };
 
+/** Admin-only. Permanently removes an enquiry. */
+export const deleteContact = async (req, res) => {
+  try {
+    const contact = await Contact.findByIdAndDelete(req.params.id);
+
+    if (!contact) {
+      return res.status(404).json({ message: "Enquiry not found" });
+    }
+
+    res.status(200).json({ message: "Enquiry deleted" });
+  } catch (error) {
+    console.error("Deleting contact failed:", error);
+    res.status(500).json({ message: "Could not delete enquiry" });
+  }
+};
+
 export const getLeadStatuses = (_req, res) => res.status(200).json({ statuses: LEAD_STATUSES });
