@@ -66,6 +66,7 @@ export const generateQuotationPDF = async (req, res) => {
     const doc = new PDFDocument({
       size: "A4",
       margin: 30,
+      bufferPages: true,
       info: {
         Title: `Quotation ${finalQuotationNumber}`,
         Author: "Chinmayi Events",
@@ -98,7 +99,7 @@ export const generateQuotationPDF = async (req, res) => {
       left: 30,
       right: 565,
       width: 535,
-      footerY: 775
+      footerY: 768
     };
 
     const numberValue = (value) => Number(value || 0);
@@ -131,96 +132,125 @@ export const generateQuotationPDF = async (req, res) => {
       return doc;
     };
 
-    const drawFooter = () => {
+    // Footers are drawn once at the end over the buffered pages. The bottom
+    // margin is zeroed first, otherwise text this low makes pdfkit add a page.
+    const drawFooter = (pageNumber, pageCount) => {
       const pageHeight = doc.page.height;
+      doc.page.margins.bottom = 0;
+
       doc
         .strokeColor(colors.gold)
-        .lineWidth(1.1)
-        .moveTo(page.left, pageHeight - 64)
-        .lineTo(page.right, pageHeight - 64)
+        .lineWidth(1)
+        .moveTo(page.left, pageHeight - 56)
+        .lineTo(page.right, pageHeight - 56)
         .stroke();
 
       setFont(true)
         .fontSize(8.5)
         .fillColor(colors.maroon)
-        .text("Chinmayi Events", page.left, pageHeight - 52, {
+        .text("Chinmayi Events", page.left, pageHeight - 47, {
           width: page.width,
-          align: "center"
+          align: "center",
+          lineBreak: false
         });
 
       setFont()
         .fontSize(7.8)
         .fillColor(colors.muted)
         .text(
-          "Kempanahalli, Chikkamagaluru | +91 93803 50678 | chinmayievents99@gmail.com",
+          "Kempanahalli, Chikkamagaluru  |  +91 93803 50678  |  chinmayievents99@gmail.com",
           page.left,
-          pageHeight - 38,
-          { width: page.width, align: "center" }
+          pageHeight - 34,
+          { width: page.width, align: "center", lineBreak: false }
         );
+
+      if (pageCount > 1) {
+        doc.text(`Page ${pageNumber} of ${pageCount}`, page.left, pageHeight - 47, {
+          width: page.width,
+          align: "right",
+          lineBreak: false
+        });
+      }
     };
 
     const drawHeader = () => {
-      doc.rect(0, 0, doc.page.width, 118).fill(colors.deepMaroon);
-      doc.rect(0, 113, doc.page.width, 5).fill(colors.gold);
+      doc.rect(0, 0, doc.page.width, 100).fill(colors.deepMaroon);
+      doc.rect(0, 100, doc.page.width, 3).fill(colors.gold);
 
       if (fs.existsSync(logoPath)) {
         doc.save();
-        doc.circle(72, 57, 31).clip();
-        doc.image(logoPath, 41, 26, { width: 62, height: 62 });
+        doc.circle(60, 50, 28).clip();
+        doc.image(logoPath, 32, 22, { width: 56, height: 56 });
         doc.restore();
       } else {
-        doc.circle(72, 57, 31).fill(colors.goldSoft);
-        setFont(true).fontSize(18).fillColor(colors.maroon).text("CE", 58, 46);
+        doc.circle(60, 50, 28).fill(colors.goldSoft);
+        setFont(true).fontSize(17).fillColor(colors.maroon).text("CE", 32, 39, { width: 56, align: "center" });
       }
 
       setFont(true)
-        .fontSize(22)
+        .fontSize(20)
         .fillColor(colors.white)
-        .text("Chinmayi Events", 120, 30, { width: 260 });
+        .text("Chinmayi Events", 102, 25, { width: 280 });
 
       setFont()
-        .fontSize(9.5)
+        .fontSize(9)
         .fillColor("#f4dfae")
-        .text("Event Planner & Decoration", 121, 58, { width: 260 })
-        .text("Chikkamagaluru, Karnataka", 121, 74, { width: 260 });
+        .text("Event Planner & Decoration  |  Chikkamagaluru, Karnataka", 103, 55, { width: 300 });
 
-      doc.roundedRect(415, 27, 122, 58, 7).strokeColor(colors.gold).lineWidth(1).stroke();
       setFont(true)
-        .fontSize(13)
+        .fontSize(17)
         .fillColor(colors.gold)
-        .text("QUOTATION", 428, 39, { width: 96, align: "center" });
+        .text("QUOTATION", 395, 28, { width: 170, align: "right", characterSpacing: 1.5 });
       setFont()
-        .fontSize(8)
+        .fontSize(9)
         .fillColor(colors.white)
-        .text(finalQuotationNumber, 428, 59, { width: 96, align: "center" });
+        .text(finalQuotationNumber, 395, 55, { width: 170, align: "right" });
     };
 
     const drawPanel = (x, y, width, height, title) => {
-      doc.roundedRect(x, y, width, height, 7).fill(colors.paper);
-      doc.roundedRect(x, y, width, height, 7).strokeColor(colors.line).lineWidth(0.8).stroke();
-      setFont(true).fontSize(8).fillColor(colors.gold).text(title.toUpperCase(), x + 14, y + 13);
+      doc.roundedRect(x, y, width, height, 6).fill(colors.paper);
+      doc.roundedRect(x, y, width, height, 6).strokeColor(colors.line).lineWidth(0.8).stroke();
+      setFont(true)
+        .fontSize(7.5)
+        .fillColor(colors.maroon)
+        .text(title.toUpperCase(), x + 14, y + 12, { characterSpacing: 0.8 });
     };
 
     const drawInfoPanels = (startY) => {
-      drawPanel(30, startY, 258, 112, "Bill To");
-      setFont(true).fontSize(12.5).fillColor(colors.ink).text(display(clientName), 44, startY + 32, { width: 225 });
+      const panelHeight = 92;
+
+      drawPanel(30, startY, 258, panelHeight, "Bill To");
+      setFont(true).fontSize(12).fillColor(colors.ink).text(display(clientName), 44, startY + 27, {
+        width: 230,
+        height: 16,
+        ellipsis: true
+      });
+
+      const clientLines = [
+        clientPhone && `Phone: ${clientPhone}`,
+        clientEmail && `Email: ${clientEmail}`,
+        eventType && `Event: ${titleCase(eventType)}`
+      ].filter(Boolean);
+
       setFont().fontSize(8.7).fillColor(colors.muted);
-      doc.text(`Phone: ${display(clientPhone)}`, 44, startY + 53, { width: 220 });
-      doc.text(`Email: ${display(clientEmail)}`, 44, startY + 68, { width: 220 });
-      doc.text(`Event Type: ${titleCase(eventType)}`, 44, startY + 83, { width: 220 });
+      clientLines.forEach((line, index) => {
+        doc.text(line, 44, startY + 47 + index * 13, { width: 230, height: 12, ellipsis: true });
+      });
 
-      drawPanel(307, startY, 258, 112, "Quotation Details");
-      setFont().fontSize(9).fillColor(colors.muted);
-      doc.text("Quotation No.", 321, startY + 34, { width: 88 });
-      doc.text("Quotation Date", 321, startY + 55, { width: 88 });
-      doc.text("Event Date", 321, startY + 76, { width: 88 });
+      drawPanel(307, startY, 258, panelHeight, "Quotation Details");
+      const details = [
+        ["Quotation No.", finalQuotationNumber],
+        ["Quotation Date", formatDate(quotationDate)],
+        ["Event Date", formatDate(eventDate)]
+      ];
 
-      setFont(true).fontSize(9.2).fillColor(colors.ink);
-      doc.text(finalQuotationNumber, 430, startY + 34, { width: 116, align: "right" });
-      doc.text(formatDate(quotationDate), 430, startY + 55, { width: 116, align: "right" });
-      doc.text(formatDate(eventDate), 430, startY + 76, { width: 116, align: "right" });
+      details.forEach(([label, value], index) => {
+        const rowY = startY + 30 + index * 18;
+        setFont().fontSize(8.7).fillColor(colors.muted).text(label, 321, rowY, { width: 100 });
+        setFont(true).fontSize(9).fillColor(colors.ink).text(value, 421, rowY, { width: 130, align: "right" });
+      });
 
-      return startY + 136;
+      return startY + panelHeight + 18;
     };
 
     const columns = {
@@ -232,25 +262,24 @@ export const generateQuotationPDF = async (req, res) => {
     };
 
     const drawTableHeader = (y) => {
-      doc.roundedRect(page.left, y, page.width, 28, 5).fill(colors.maroon);
-      setFont(true).fontSize(8.5).fillColor(colors.white);
-      doc.text("Sl No", columns.no.x + 8, y + 9, { width: columns.no.width - 12, align: "center" });
-      doc.text("Item Description", columns.item.x + 10, y + 9, { width: columns.item.width - 16 });
-      doc.text("Qty", columns.qty.x + 8, y + 9, { width: columns.qty.width - 12, align: "center" });
-      doc.text("Rate", columns.rate.x + 8, y + 9, { width: columns.rate.width - 14, align: "right" });
-      doc.text("Amount", columns.amount.x + 8, y + 9, { width: columns.amount.width - 14, align: "right" });
-      return y + 28;
+      doc.roundedRect(page.left, y, page.width, 24, 4).fill(colors.maroon);
+      setFont(true).fontSize(8.3).fillColor(colors.white);
+      doc.text("Sl No", columns.no.x + 8, y + 7, { width: columns.no.width - 12, align: "center" });
+      doc.text("Item Description", columns.item.x + 10, y + 7, { width: columns.item.width - 16 });
+      doc.text("Qty", columns.qty.x + 8, y + 7, { width: columns.qty.width - 12, align: "center" });
+      doc.text("Rate", columns.rate.x + 8, y + 7, { width: columns.rate.width - 14, align: "right" });
+      doc.text("Amount", columns.amount.x + 8, y + 7, { width: columns.amount.width - 14, align: "right" });
+      return y + 24;
     };
 
-    const ensureSpace = (y, neededHeight) => {
+    const ensureSpace = (y, neededHeight, repeatTableHeader = true) => {
       if (y + neededHeight <= page.footerY) return y;
-      drawFooter();
       doc.addPage();
-      return drawTableHeader(54);
+      return repeatTableHeader ? drawTableHeader(40) : 40;
     };
 
     drawHeader();
-    let currentY = drawInfoPanels(143);
+    let currentY = drawInfoPanels(121);
     currentY = drawTableHeader(currentY);
 
     const normalizedItems = items.map((item) => ({
@@ -264,33 +293,33 @@ export const generateQuotationPDF = async (req, res) => {
       const textHeight = doc.heightOfString(item.material, {
         width: columns.item.width - 18
       });
-      const rowHeight = Math.max(34, textHeight + 18);
+      const rowHeight = Math.max(24, textHeight + 12);
       currentY = ensureSpace(currentY, rowHeight);
 
-      if (index % 2 === 0) {
-        doc.rect(page.left, currentY, page.width, rowHeight).fill("#fffdf8");
+      if (index % 2 === 1) {
+        doc.rect(page.left, currentY, page.width, rowHeight).fill(colors.paper);
       }
 
       doc.strokeColor(colors.line).lineWidth(0.5);
       doc.moveTo(page.left, currentY + rowHeight).lineTo(page.right, currentY + rowHeight).stroke();
 
-      setFont().fontSize(8.9).fillColor(colors.ink);
-      doc.text(String(index + 1), columns.no.x + 8, currentY + 11, {
+      setFont().fontSize(8.8).fillColor(colors.ink);
+      doc.text(String(index + 1), columns.no.x + 8, currentY + 6, {
         width: columns.no.width - 12,
         align: "center"
       });
-      doc.text(item.material, columns.item.x + 10, currentY + 10, {
+      doc.text(item.material, columns.item.x + 10, currentY + 6, {
         width: columns.item.width - 18
       });
-      doc.text(String(item.quantity), columns.qty.x + 8, currentY + 11, {
+      doc.text(String(item.quantity), columns.qty.x + 8, currentY + 6, {
         width: columns.qty.width - 12,
         align: "center"
       });
-      doc.text(formatMoney(item.amount), columns.rate.x + 8, currentY + 11, {
+      doc.text(formatMoney(item.amount), columns.rate.x + 8, currentY + 6, {
         width: columns.rate.width - 14,
         align: "right"
       });
-      doc.text(formatMoney(item.quantity * item.amount), columns.amount.x + 8, currentY + 11, {
+      doc.text(formatMoney(item.quantity * item.amount), columns.amount.x + 8, currentY + 6, {
         width: columns.amount.width - 14,
         align: "right"
       });
@@ -298,46 +327,46 @@ export const generateQuotationPDF = async (req, res) => {
       currentY += rowHeight;
     });
 
-    currentY = ensureSpace(currentY + 18, 150);
-
     const itemsTotal = numberValue(total);
     const transport = numberValue(transportationCharge);
     const grandTotal = itemsTotal + transport;
 
-    doc.roundedRect(30, currentY, 300, 112, 7).fill(colors.paper);
-    doc.roundedRect(30, currentY, 300, 112, 7).strokeColor(colors.line).lineWidth(0.8).stroke();
-    setFont(true).fontSize(8).fillColor(colors.gold).text("NOTES", 45, currentY + 15);
-    setFont().fontSize(8.5).fillColor(colors.muted).text(
-      "This quotation is valid for 7 days. Final pricing may vary based on venue access, selected materials, event timing and confirmed requirements.",
-      45,
-      currentY + 34,
-      { width: 268, lineGap: 3 }
-    );
-    setFont(true).fontSize(9).fillColor(colors.maroon).text(
-      "Thank you for choosing Chinmayi Events.",
-      45,
-      currentY + 86,
-      { width: 268 }
-    );
+    const totals = { x: 350, width: 215, height: 92, grandHeight: 34 };
+    currentY = ensureSpace(currentY + 16, totals.height, false);
 
-    doc.roundedRect(350, currentY, 215, 112, 7).fill("#ffffff");
-    doc.roundedRect(350, currentY, 215, 112, 7).strokeColor(colors.line).lineWidth(0.8).stroke();
+    doc.save();
+    doc.roundedRect(totals.x, currentY, totals.width, totals.height, 6).clip();
+    doc.rect(totals.x, currentY, totals.width, totals.height).fill(colors.white);
+    doc
+      .rect(totals.x, currentY + totals.height - totals.grandHeight, totals.width, totals.grandHeight)
+      .fill(colors.maroon);
+    doc.restore();
+    doc
+      .roundedRect(totals.x, currentY, totals.width, totals.height, 6)
+      .strokeColor(colors.line)
+      .lineWidth(0.8)
+      .stroke();
 
     setFont().fontSize(9).fillColor(colors.muted);
-    doc.text("Items Total", 366, currentY + 18, { width: 80 });
-    doc.text("Transportation", 366, currentY + 40, { width: 90 });
-    setFont(true).fontSize(9.5).fillColor(colors.ink);
-    doc.text(formatMoney(itemsTotal), 452, currentY + 18, { width: 96, align: "right" });
-    doc.text(formatMoney(transport), 452, currentY + 40, { width: 96, align: "right" });
+    doc.text("Items Total", totals.x + 14, currentY + 13, { width: 90 });
+    doc.text("Transportation", totals.x + 14, currentY + 33, { width: 90 });
+    setFont(true).fontSize(9.2).fillColor(colors.ink);
+    doc.text(formatMoney(itemsTotal), totals.x + 95, currentY + 13, { width: 106, align: "right" });
+    doc.text(formatMoney(transport), totals.x + 95, currentY + 33, { width: 106, align: "right" });
 
-    doc.rect(350, currentY + 72, 215, 40).fill(colors.maroon);
-    setFont(true).fontSize(10).fillColor(colors.white).text("Grand Total", 366, currentY + 86, { width: 85 });
-    setFont(true).fontSize(12).fillColor(colors.gold).text(formatMoney(grandTotal), 442, currentY + 84, {
+    const grandY = currentY + totals.height - totals.grandHeight;
+    setFont(true).fontSize(9.5).fillColor(colors.white).text("Grand Total", totals.x + 14, grandY + 11, { width: 85 });
+    setFont(true).fontSize(12).fillColor(colors.gold).text(formatMoney(grandTotal), totals.x + 95, grandY + 9, {
       width: 106,
       align: "right"
     });
 
-    drawFooter();
+    const pageRange = doc.bufferedPageRange();
+    for (let i = 0; i < pageRange.count; i += 1) {
+      doc.switchToPage(pageRange.start + i);
+      drawFooter(i + 1, pageRange.count);
+    }
+
     doc.end();
   } catch (error) {
     console.error("PDF generation error:", error);
