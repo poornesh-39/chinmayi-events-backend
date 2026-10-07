@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 
+import authRoutes from "./routes/auth.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
 import experienceRoutes from "./routes/experience.routes.js";
 import quotationRoutes from "./routes/quotation.routes.js";
@@ -35,6 +36,7 @@ const isAllowedOrigin = (origin) => {
       isHttps &&
       (hostname.endsWith(".netlify.app") ||
         hostname.endsWith(".pages.dev") ||
+        hostname.endsWith(".vercel.app") ||
         hostname === "chinmayi-events.com" ||
         hostname === "www.chinmayi-events.com" ||
         hostname === "chinmayievents.com" ||
@@ -60,6 +62,7 @@ app.use(cors({
 
 app.use(express.json());
 
+app.use("/api/auth", authRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/experience", experienceRoutes);
 app.use("/api/quotation", quotationRoutes);

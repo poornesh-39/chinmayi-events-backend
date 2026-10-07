@@ -5,11 +5,13 @@ import {
   getGalleriesByCategory,
   getAllCategoriesWithFeatured,
   getHighlights,
+  getPublicGalleries,
   deleteGalleryImage,
   setFeaturedImage,
   toggleHighlightImage,
   getAdminGalleries
 } from '../controllers/gallery.controller.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -36,13 +38,18 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB max size
 });
 
-router.post('/upload', upload.single('file'), uploadGalleryImage);
+// Public: what the website itself renders.
 router.get('/categories', getAllCategoriesWithFeatured);
 router.get('/highlights', getHighlights);
-router.get('/admin/all', getAdminGalleries);
+router.get('/all', getPublicGalleries);
 router.get('/category/:category', getGalleriesByCategory);
-router.delete('/:imageId', deleteGalleryImage);
-router.put('/:imageId/featured', setFeaturedImage);
-router.put('/:imageId/highlight', toggleHighlightImage);
+
+// Admin only. requireAuth sits ahead of multer deliberately — otherwise an
+// anonymous request buffers its file into memory before being rejected.
+router.post('/upload', requireAuth, upload.single('file'), uploadGalleryImage);
+router.get('/admin/all', requireAuth, getAdminGalleries);
+router.delete('/:imageId', requireAuth, deleteGalleryImage);
+router.put('/:imageId/featured', requireAuth, setFeaturedImage);
+router.put('/:imageId/highlight', requireAuth, toggleHighlightImage);
 
 export default router;
